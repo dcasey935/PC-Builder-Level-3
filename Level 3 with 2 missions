@@ -1,0 +1,2304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PC Builder - Master Working Version</title>
+    <style>
+        :root {
+            --bg-dark: #070d11;
+            --panel-bg: #0e1922;
+            --panel-border: #1e3a4c;
+            --accent-teal: #00e5ff;
+            --accent-dim: #005f73;
+            --text-main: #e0f2fe;
+            --text-muted: #7dd3fc;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', Courier, monospace, system-ui, -apple-system;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            padding: 10px;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 520px;
+            background: var(--panel-bg);
+            border: 2px solid var(--panel-border);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 229, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(0,0,0,0.3);
+            border-bottom: 1px solid var(--panel-border);
+            font-size: 14px;
+        }
+
+        .round-indicator {
+            color: var(--text-muted);
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .score-display {
+            color: var(--accent-teal);
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .dashboard {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            background: #04080a;
+            border-bottom: 1px solid var(--panel-border);
+            font-size: 12px;
+        }
+
+        .heat-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-grow: 1;
+            margin-right: 15px;
+        }
+
+        .heat-label {
+            color: var(--warning);
+            font-weight: bold;
+        }
+
+        .heat-bar-bg {
+            flex-grow: 1;
+            height: 10px;
+            background: #1e293b;
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .heat-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent-teal);
+            transition: width 0.3s ease, background 0.3s ease;
+        }
+
+        .controls-right {
+            display: flex;
+            gap: 6px;
+        }
+
+        .icon-btn {
+            background: var(--panel-border);
+            border: none;
+            color: var(--text-main);
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: var(--accent-dim);
+        }
+
+        .play-area {
+            display: grid;
+            grid-template-columns: 130px 1fr;
+            min-height: 400px;
+            position: relative;
+        }
+
+        .sidebar {
+            background: rgba(0,0,0,0.2);
+            border-right: 1px solid var(--panel-border);
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .sidebar-title {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+        }
+
+        .part-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            padding: 6px;
+            text-align: center;
+            cursor: grab;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .part-card:hover {
+            border-color: var(--accent-teal);
+            background: rgba(0, 229, 255, 0.05);
+        }
+
+        .part-card.selected-tap {
+            border-color: var(--accent-teal);
+            background: rgba(0, 229, 255, 0.15);
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+        }
+
+        .part-icon {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .part-name {
+            font-size: 9px;
+            color: var(--text-main);
+            font-weight: bold;
+        }
+
+        .workspace {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            position: relative;
+            background: radial-gradient(circle at center, #0f2230 0%, #070d11 100%);
+        }
+
+        .motherboard {
+            width: 100%;
+            height: 100%;
+            background: #0a1722;
+            border: 2px dashed var(--panel-border);
+            border-radius: 6px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(auto-fill, minmax(55px, 1fr));
+            gap: 8px;
+            padding: 10px;
+            position: relative;
+            overflow-y: auto;
+            max-height: 380px;
+        }
+
+        .board-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0.04);
+            font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            pointer-events: none;
+        }
+
+        .socket {
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px dashed var(--panel-border);
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            transition: all 0.2s;
+            position: relative;
+            min-height: 55px;
+        }
+
+        .socket.highlight {
+            border-color: var(--accent-teal);
+            background: rgba(0, 229, 255, 0.08);
+        }
+
+        .socket.filled {
+            border-style: solid;
+            border-color: var(--success);
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .socket-title {
+            font-size: 9px;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+            text-transform: uppercase;
+        }
+
+        .socket-content {
+            font-size: 10px;
+            font-weight: bold;
+            color: var(--success);
+            text-align: center;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(7, 13, 17, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            text-align: center;
+            z-index: 20;
+            display: none;
+        }
+
+        .overlay.active {
+            display: flex;
+        }
+
+        /* Setup and diagnostic activities can be taller than the game window. */
+        #quizOverlay {
+            justify-content: flex-start;
+            overflow-y: auto;
+            padding: 18px 12px;
+        }
+        #quizOverlay .quiz-choices { max-width: 410px; }
+        .quiz-btn:disabled { opacity: .65; cursor: default; }
+        .setup-info { color: var(--text-muted); font-size: 11px; line-height: 1.5;
+            text-align: left; padding: 10px; border: 1px solid var(--panel-border);
+            border-radius: 4px; width: 100%; }
+        .setup-status { color: var(--warning); font-size: 11px; text-align: left; }
+        .mission-panel { color: var(--text-muted); font-size: 11px; line-height: 1.5;
+            padding: 7px; border: 1px solid var(--panel-border); border-radius: 5px; }
+        .mission-panel button { width: 100%; margin-top: 8px; }
+
+        .overlay h2 {
+            font-size: 22px;
+            margin-bottom: 12px;
+            color: var(--accent-teal);
+        }
+
+        .overlay.overheat h2 {
+            color: var(--danger);
+            font-size: 26px;
+            letter-spacing: 2px;
+        }
+
+        .overlay p {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            max-width: 240px;
+        }
+
+        .btn {
+            background: var(--accent-teal);
+            color: var(--bg-dark);
+            border: none;
+            padding: 10px 24px;
+            font-weight: bold;
+            font-size: 13px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100%;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--accent-teal);
+            border: 1px solid var(--accent-teal);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(0, 229, 255, 0.1);
+        }
+
+        .quiz-choices {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            max-width: 340px;
+            margin-bottom: 16px;
+        }
+
+        .quiz-btn {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            color: var(--text-main);
+            padding: 10px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            text-align: left;
+            transition: all 0.2s;
+        }
+
+        .quiz-btn:hover {
+            border-color: var(--accent-teal);
+            background: rgba(0, 229, 255, 0.1);
+        }
+
+        .guide-modal {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-dark);
+            z-index: 30;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            display: none;
+        }
+
+        .guide-modal.active {
+            display: flex;
+        }
+
+        .guide-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 8px;
+        }
+
+        .guide-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-right: 4px;
+        }
+
+        .guide-item {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 6px;
+            padding: 8px;
+        }
+
+        .guide-section-title {
+            color: var(--accent-teal);
+            font-size: 13px;
+            margin: 12px 0 4px;
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 6px;
+        }
+
+        .guide-item ul {
+            padding-left: 17px;
+            margin-top: 7px;
+        }
+
+        .guide-item li {
+            color: var(--text-muted);
+            font-size: 11px;
+            line-height: 1.55;
+            margin-bottom: 6px;
+            user-select: text;
+        }
+
+        .guide-item p, .guide-item h4 { user-select: text; }
+
+        .guide-item h4 {
+            color: var(--accent-teal);
+            font-size: 12px;
+            margin-bottom: 2px;
+        }
+
+        .guide-item p {
+            color: var(--text-muted);
+            font-size: 10px;
+            line-height: 1.3;
+        }
+
+        .footer-brand {
+            padding: 6px;
+            text-align: center;
+            font-size: 10px;
+            color: var(--panel-border);
+            background: #04080a;
+            border-top: 1px solid rgba(255,255,255,0.03);
+        }
+
+        svg.icon-svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--accent-teal);
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* Level 3 has no timer, so hide Pause only during Level 3. */
+        .game-container.level3-mode #pauseBtn { display: none; }
+        .game-container.level3-mode #bgmToggleBtn { display: none; }
+        /* Keep the pause dialog above Level 3 questions, but below the original dashboard. */
+        .game-container.level3-mode #mainOverlay.level3-pause { z-index: 35; }
+        /* Level 3: leave the original Level 1 dashboard uncovered and clickable. */
+        .game-container.level3-mode .overlay {
+            top: var(--level3-overlay-top);
+            height: calc(100% - var(--level3-overlay-top));
+        }
+
+        /* Level 3 loading display, inspired by the supplied reference image. */
+        .level3-progress-wrap { width: min(72%, 420px); margin: 8px auto 16px; padding: 8px 12px 12px; text-align: center; border-radius: 16px; background: #000; border: 2px solid #65e9ff; box-sizing: border-box; }
+        .game-container:not(.level3-mode) .level3-progress-wrap { display: none !important; }
+        .level3-loading-heading { color: #62eaff; font-weight: 900; font-size: clamp(17px, 2.4vw, 25px); letter-spacing: 3px; line-height: 1.3; text-shadow: 0 0 7px rgba(98,234,255,.55); }
+        .level3-loading-dots::after { content: ''; animation: level3Dots 1.35s steps(4,end) infinite; }
+        @keyframes level3Dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75%,100% { content: '...'; } }
+        .level3-progress-track { height: 27px; border: 3px solid #65e9ff; border-radius: 13px; padding: 4px; overflow: hidden; background: #000; margin: 8px 0; box-shadow: 0 0 6px rgba(98,234,255,.65); box-sizing: border-box; }
+        .level3-progress-fill { width: 0%; height: 100%; border-radius: 7px; background: repeating-linear-gradient(125deg,#62eaff 0px,#62eaff 11px,#5a78a5 11px,#5a78a5 19px); background-size: 44px 44px; transition: width .35s ease; animation: level3Stripe 1.1s linear infinite; }
+        @keyframes level3Stripe { from { background-position: 0 0; } to { background-position: 44px 0; } }
+        .level3-progress-percent { color: #62eaff; font-weight: 900; font-size: clamp(22px, 3vw, 34px); line-height: 1.15; text-shadow: 0 0 7px rgba(98,234,255,.45); }
+        .level3-progress-detail { color: #c9f5ff; font-size: 12px; margin-top: 4px; letter-spacing: 1px; }
+        @media (prefers-reduced-motion: reduce) { .level3-loading-dots::after, .level3-progress-fill { animation: none; } .level3-loading-dots::after { content: '...'; } }
+
+        /* Level 3 Mission 2 only: critical-to-healthy system status. */
+        .level3-progress-wrap.system-status .level3-loading-heading { color: #ff5252; text-shadow: none; }
+        .level3-progress-wrap.system-status .level3-progress-track { border-color: #ff5252; box-shadow: 0 0 6px rgba(255,82,82,.45); }
+        .level3-progress-wrap.system-status .level3-progress-fill { background: #e53e3e; animation: none; transition: width .35s ease, background-color .35s ease; }
+        .level3-progress-wrap.system-status .level3-progress-percent { color: #ff5252; text-shadow: none; }
+        .level3-progress-wrap.system-status.status-yellow .level3-loading-heading,
+        .level3-progress-wrap.system-status.status-yellow .level3-progress-percent { color: #ffcf40; }
+        .level3-progress-wrap.system-status.status-yellow .level3-progress-track { border-color: #ffcf40; box-shadow: 0 0 6px rgba(255,207,64,.45); }
+        .level3-progress-wrap.system-status.status-yellow .level3-progress-fill { background: #ffcf40; }
+        .level3-progress-wrap.system-status.status-green .level3-loading-heading,
+        .level3-progress-wrap.system-status.status-green .level3-progress-percent { color: #35db76; }
+        .level3-progress-wrap.system-status.status-green .level3-progress-track { border-color: #35db76; box-shadow: 0 0 6px rgba(53,219,118,.45); }
+        .level3-progress-wrap.system-status.status-green .level3-progress-fill { background: #35db76; }
+        .level3-progress-wrap.system-status .level3-loading-dots { display: none; }
+        /* Mission 2 is a fully filled, flashing health bar. Correct answers
+           convert red segments to yellow, then green; blinking stops at 100%. */
+        .level3-progress-wrap.system-status { border-color: #ff5252; }
+        .level3-progress-wrap.system-status .level3-progress-track {
+            background: #e53e3e;
+            animation: systemCriticalBlink var(--system-blink-duration, .65s) ease-in-out infinite;
+        }
+        .level3-progress-wrap.system-status .level3-progress-fill {
+            width: 100% !important;
+            background: linear-gradient(to right,
+                #35db76 0%, #35db76 var(--system-recovery, 0%),
+                #e53e3e var(--system-recovery, 0%), #e53e3e 100%);
+            animation: none;
+            transition: background-color .35s ease;
+        }
+        .level3-progress-wrap.system-status.status-yellow .level3-progress-fill {
+            background: linear-gradient(to right,
+                #35db76 0%, #35db76 var(--system-recovery, 0%),
+                #ffcf40 var(--system-recovery, 0%), #ffcf40 100%);
+        }
+        .level3-progress-wrap.system-status.status-green .level3-progress-fill {
+            background: linear-gradient(to right,
+                #35db76 0%, #35db76 var(--system-recovery, 0%),
+                #35db76 var(--system-recovery, 0%), #35db76 100%);
+        }
+        .level3-progress-wrap.system-status.status-yellow { border-color: #ffcf40; }
+        .level3-progress-wrap.system-status.status-green { border-color: #35db76; }
+        .level3-progress-wrap.system-status.system-stable .level3-progress-track { animation: none; }
+        @keyframes systemCriticalBlink { 0%,100% { opacity: 1; } 50% { opacity: .38; } }
+        @media (prefers-reduced-motion: reduce) {
+            .level3-progress-wrap.system-status .level3-progress-track { animation: none; }
+        }
+        /* Mission 2: 16 separate red-to-green segments, matching the reference. */
+        .level3-progress-wrap.system-status .level3-progress-track {
+            position: relative; height: 39px; padding: 0; border: 5px solid #080808;
+            border-radius: 0; overflow: hidden; background: #000;
+            box-shadow: 0 0 0 1px #454545; animation: none;
+        }
+        .level3-progress-wrap.system-status .level3-progress-fill {
+            position: absolute; inset: 0; width: 100% !important; height: 100%; border-radius: 0;
+            background: repeating-linear-gradient(to right, transparent 0, transparent calc(6.25% - 3px), #050505 calc(6.25% - 3px), #050505 6.25%),
+              linear-gradient(to right, #ff1825 0%, #ff4c26 17%, #ff9130 34%, #ffd437 56%, #e7ee22 75%, #78d500 100%) !important;
+            animation: none !important;
+        }
+        /* Unrecovered segments pulse; each correct answer moves the pulse boundary right. */
+        .level3-progress-wrap.system-status .level3-progress-track::after {
+            content: ''; position: absolute; top: 0; bottom: 0; right: 0;
+            width: calc(100% - var(--system-recovery, 0%));
+            background: rgba(0,0,0,.26); pointer-events: none;
+            animation: segmentedWarningBlink var(--system-blink-duration, .65s) ease-in-out infinite;
+            transition: width .35s ease;
+        }
+        .level3-progress-wrap.system-status.system-stable .level3-progress-track::after { display: none; }
+        @keyframes segmentedWarningBlink { 0%,100% { opacity: .15; } 50% { opacity: .95; } }
+        @media (prefers-reduced-motion: reduce) {
+            .level3-progress-wrap.system-status .level3-progress-track::after { animation: none; opacity: .55; }
+        }
+
+        /* Mission 2: remove colored segments from red through green with every correct answer. */
+        .level3-progress-wrap.system-status .level3-progress-fill {
+            inset: 0; width: 100% !important;
+            background: repeating-linear-gradient(to right, transparent 0, transparent calc(6.25% - 3px), #050505 calc(6.25% - 3px), #050505 6.25%),
+              linear-gradient(to right, #ff1825 0%, #ff4c26 17%, #ff9130 34%, #ffd437 56%, #e7ee22 75%, #78d500 100%) !important;
+            clip-path: inset(0 0 0 var(--system-recovery, 0%));
+            transition: clip-path .4s ease;
+        }
+        .level3-progress-wrap.system-status .level3-progress-track::after { display: none !important; }
+        .level3-progress-wrap.system-status .level3-progress-track {
+            animation: criticalBarPulse .8s ease-in-out infinite !important;
+            border-color: #080808 !important; box-shadow: 0 0 0 1px #454545 !important;
+        }
+        .level3-progress-wrap.system-status .level3-loading-heading {
+            color: #ff5252 !important; animation: criticalHeadingPulse .8s ease-in-out infinite;
+        }
+        .level3-progress-wrap.system-status.system-stable .level3-progress-track,
+        .level3-progress-wrap.system-status.system-stable .level3-loading-heading { animation: none !important; }
+        .level3-progress-wrap.system-status.system-stable .level3-loading-heading { color: #35db76 !important; }
+        .level3-progress-wrap.system-status .level3-progress-percent,
+        .level3-progress-wrap.system-status .level3-progress-detail { display: none !important; }
+        @keyframes criticalBarPulse { 0%,100% {opacity:1} 50% {opacity:.32} }
+        @keyframes criticalHeadingPulse { 0%,100% {opacity:1} 50% {opacity:.45} }
+        @media (prefers-reduced-motion: reduce) {
+            .level3-progress-wrap.system-status .level3-progress-track,
+            .level3-progress-wrap.system-status .level3-loading-heading { animation: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <div class="top-bar">
+            <span class="round-indicator" id="roundLabel">ROUND 1</span>
+            <span class="score-display"><span id="scoreVal">0</span> PTS</span>
+        </div>
+
+        <div class="dashboard">
+            <div class="heat-container">
+                <span class="heat-label">HEAT</span>
+                <div class="heat-bar-bg">
+                    <div class="heat-bar-fill" id="heatFill"></div>
+                </div>
+            </div>
+            <div class="controls-right">
+                <button class="icon-btn" id="bgmToggleBtn" title="Toggle Arcade Music">🎵</button>
+                <button class="icon-btn" id="soundToggleBtn" title="Toggle Sound Effects">🔊</button>
+                <button class="icon-btn" id="guideBtn" title="Learning & Review Guide">📖</button>
+                <button class="icon-btn" id="pauseBtn" title="Pause Game">⏸</button>
+            </div>
+        </div>
+
+        <div class="play-area">
+            <div class="sidebar" id="sidebar">
+                <div class="sidebar-title">Parts Tray</div>
+            </div>
+
+            <div class="workspace">
+                <div class="motherboard" id="motherboard">
+                    <div class="board-label">BOARD</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Intro / State Overlay -->
+        <div class="overlay active" id="mainOverlay">
+            <h2 id="overlayTitle">PC BUILDER TRAINING</h2>
+            <p id="overlayDesc">Install all 13 components across 3 progressive rounds, pass mini-quizzes, and conquer the final Master Quiz!</p>
+            <div class="btn-group">
+                <button class="btn" id="overlayBtn">PLAY NOW</button>
+                <button class="btn btn-secondary" id="introGuideBtn">STUDY & REVIEW</button>
+            </div>
+        </div>
+
+        <!-- Mini / Final Quiz Overlay -->
+        <div class="overlay" id="quizOverlay">
+            <h2 id="quizTitle">QUICK MINI-QUIZ (1.5x PTS)</h2>
+            <p id="quizQuestion">Loading question...</p>
+            <div class="quiz-choices" id="quizChoices"></div>
+        </div>
+
+        <!-- Part Guide Modal -->
+        <div class="guide-modal" id="guideModal">
+            <div class="guide-header">
+                <h3>LEARNING & REVIEW GUIDE</h3>
+                <button class="icon-btn" id="closeGuideBtn">✕</button>
+            </div>
+            <div class="guide-content" id="guideContentList"></div>
+        </div>
+
+        <div class="footer-brand">PC Builder Basics • 13-Part Campaign Edition</div>
+    </div>
+
+    <script>
+        const HARDWARE_DB = [
+            { id: 'board', name: 'Motherboard', category: 'board', desc: 'The manager: connects every part, holds the BIOS, and has Wi-Fi built in.' },
+            { id: 'cpu', name: 'CPU', category: 'cpu', desc: 'The brain. It runs every instruction the computer carries out.' },
+            { id: 'paste', name: 'Thermal Paste', category: 'paste', desc: 'Fills the tiny gaps between the CPU and cooler so heat can leave.' },
+            { id: 'cooler', name: 'CPU Cooler', category: 'cooler', desc: 'Keeps the brain from overheating — fan cooled, or a radiator for liquid loops.' },
+            { id: 'ram', name: 'RAM', category: 'ram', desc: 'How much the computer can hold in mind at once — like brain cells.' },
+            { id: 'gpu', name: 'GPU', category: 'gpu', desc: 'Makes the pictures: the GUI you see after logging in, and every game frame.' },
+            { id: 'ssd', name: 'SSD', category: 'storage', desc: 'Where everything is stored — pictures, games, applications.' },
+            { id: 'hdd', name: 'Hard Drive', category: 'hdd', desc: 'An older spinning drive — slower than SSD, but cheap for bulk storage.' },
+            { id: 'psu', name: 'PSU', category: 'psu', desc: 'The powerhouse — the mitochondria of the PC. It feeds energy to everything.' },
+            { id: 'fan', name: 'Case Fan', category: 'fan', desc: 'Pushes the heat out of the chassis.' },
+            { id: 'accessories', name: 'Accessories', category: 'accessories', desc: 'External peripherals such as a monitor, keyboard, and mouse connect to appropriate video and USB ports.' },
+            { id: 'bios', name: 'BIOS', category: 'bios', desc: 'BIOS/UEFI is motherboard firmware used to initialize hardware and provide configuration settings before the operating system loads.' },
+            { id: 'wifi', name: 'Wifi Chip', category: 'wifi', desc: 'Wireless connectivity can be provided by integrated motherboard hardware or an added WiFi adapter; verify the adapter and network configuration.' }
+        ];
+
+        // Mini quizzes between rounds
+        const MINI_QUIZZES = [
+            // Round 1 Mini-Quiz
+            [
+                { q: "Which component is the brain that runs every instruction the computer carries out?", choices: ["CPU", "PSU", "RAM", "BIOS"], correct: 0 },
+                { q: "What fills the tiny gaps between the CPU and its cooler so heat can leave?", choices: ["Thermal Paste", "Liquid Coolant", "Silicon Oil", "Thermal Tape"], correct: 0 }
+            ],
+            // Round 2 Mini-Quiz
+            [
+                { q: "Which part is the powerhouse (mitochondria) of the PC that feeds energy to everything?", choices: ["PSU", "Motherboard", "Case Fan", "Hard Drive"], correct: 0 },
+                { q: "Which drive is an older spinning drive — slower than an SSD, but cheap for bulk storage?", choices: ["Hard Drive", "NVMe SSD", "RAM", "GPU"], correct: 0 }
+            ]
+        ];
+
+        // Ultimate Final Test covering all 13 parts (triggered at the end of Round 3)
+        const ULTIMATE_FINAL_TEST = [
+            {
+                q: "Which main circuit board allows the processor, memory, and other components to communicate?",
+                choices: ["Motherboard", "CPU", "GPU", "PSU"],
+                correct: 0
+            },
+            {
+                q: "Which component executes program instructions and performs calculations?",
+                choices: ["CPU", "RAM", "Hard Drive", "Case Fan"],
+                correct: 0
+            },
+            {
+                q: "Which material improves heat transfer by filling microscopic gaps between a processor and its cooler?",
+                choices: ["Thermal Paste", "Silicon Oil", "Liquid Coolant", "Thermal Tape"],
+                correct: 0
+            },
+            {
+                q: "Which component removes heat directly from the processor to help prevent thermal throttling?",
+                choices: ["CPU Cooler", "Case Fan", "PSU", "SSD"],
+                correct: 0
+            },
+            {
+                q: "Which component temporarily holds data that running applications need to access quickly?",
+                choices: ["RAM", "SSD", "Hard Drive", "BIOS"],
+                correct: 0
+            },
+            {
+                q: "Which component primarily processes graphics and renders images for display?",
+                choices: ["GPU", "CPU", "Motherboard", "Accessories"],
+                correct: 0
+            },
+            {
+                q: "Which storage device uses flash memory and has no spinning platters?",
+                choices: ["SSD", "Hard Drive", "RAM", "Wifi Chip"],
+                correct: 0
+            },
+            {
+                q: "Which storage device records data on rotating magnetic platters?",
+                choices: ["Hard Drive", "NVMe SSD", "RAM", "GPU"],
+                correct: 0
+            },
+            {
+                q: "Which component converts incoming electrical power into usable power for PC hardware?",
+                choices: ["PSU", "Motherboard", "Case Fan", "CPU"],
+                correct: 0
+            },
+            {
+                q: "Which component moves air through the computer case to improve airflow?",
+                choices: ["Case Fan", "CPU Cooler", "Thermal Paste", "Wifi Chip"],
+                correct: 0
+            },
+            {
+                q: "What category includes devices such as keyboards, monitors, and mice?",
+                choices: ["Accessories", "BIOS", "Motherboard", "RAM"],
+                correct: 0
+            },
+            {
+                q: "Where can a technician check whether the firmware detects installed memory and storage before the operating system loads?",
+                choices: ["BIOS", "GPU", "SSD", "CPU"],
+                correct: 0
+            },
+            {
+                q: "Which hardware enables a computer to connect to a wireless local area network?",
+                choices: ["Wifi Chip", "Case Fan", "Hard Drive", "PSU"],
+                correct: 0
+            }
+        ];
+
+        const SVG_ICONS = {
+            cpu: '<svg class="icon-svg" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg>',
+            cooler: '<svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v4M12 16v4"/></svg>',
+            gpu: '<svg class="icon-svg" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="8" cy="12" r="3"/></svg>',
+            ram: '<svg class="icon-svg" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="10" rx="1"/><path d="M6 7v10M10 7v10"/></svg>',
+            psu: '<svg class="icon-svg" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 12h12"/></svg>',
+            fan: '<svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v9"/></svg>',
+            storage: '<svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10"/></svg>',
+            board: '<svg class="icon-svg" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M6 6h2v2H6zM14 6h4v4h-4z"/></svg>',
+            accessories: '<svg class="icon-svg" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
+            paste: '<svg class="icon-svg" viewBox="0 0 24 24"><path d="M18 2l4 4M7.5 20.5 19 9l-4-4L3.5 16.5 2 22z"/></svg>',
+            bios: '<svg class="icon-svg" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>',
+            wifi: '<svg class="icon-svg" viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>',
+            hdd: '<svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="11" r="4"/><circle cx="12" cy="11" r="1"/></svg>'
+        };
+
+        let gameState = {
+            round: 1,
+            score: 0,
+            heat: 0,
+            maxHeat: 100,
+            heatRate: 0.35,
+            isPlaying: false,
+            isPaused: false,
+            soundEnabled: true,
+            bgmEnabled: false,
+            requiredParts: [],
+            placedParts: new Set(),
+            selectedPartId: null,
+            timerInterval: null,
+            bgmInterval: null,
+            miniQuizIndex: 0,
+            finalTestIndex: 0,
+            examQuestions: []
+        };
+
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playSound(type) {
+            if (!gameState.soundEnabled) return;
+            initAudio();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'snap') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'click') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now);
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.05);
+                osc.start(now); osc.stop(now + 0.05);
+            } else if (type === 'success') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.1);
+                osc.frequency.setValueAtTime(783.99, now + 0.2);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
+                osc.start(now); osc.stop(now + 0.35);
+            } else if (type === 'overheat') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.linearRampToValueAtTime(80, now + 0.4);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+                osc.start(now); osc.stop(now + 0.4);
+            }
+        }
+
+        const arcadeNotes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 440.00, 493.88];
+        let noteIndex = 0;
+        function playArcadeNote() {
+            if (!gameState.bgmEnabled || !gameState.isPlaying || gameState.isPaused) return;
+            initAudio();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(arcadeNotes[noteIndex], now);
+            gain.gain.setValueAtTime(0.03, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(now); osc.stop(now + 0.2);
+            noteIndex = (noteIndex + 1) % arcadeNotes.length;
+        }
+
+        function toggleBGM() {
+            gameState.bgmEnabled = !gameState.bgmEnabled;
+            const btn = document.getElementById('bgmToggleBtn');
+            btn.style.color = gameState.bgmEnabled ? 'var(--accent-teal)' : 'var(--text-main)';
+            if (gameState.bgmEnabled && gameState.isPlaying && !gameState.bgmInterval) {
+                gameState.bgmInterval = setInterval(playArcadeNote, 220);
+            } else if (!gameState.bgmEnabled && gameState.bgmInterval) {
+                clearInterval(gameState.bgmInterval); gameState.bgmInterval = null;
+            }
+            playSound('click');
+        }
+
+        const roundLabel = document.getElementById('roundLabel');
+        const scoreVal = document.getElementById('scoreVal');
+        const heatFill = document.getElementById('heatFill');
+        const sidebar = document.getElementById('sidebar');
+        const motherboard = document.getElementById('motherboard');
+        const mainOverlay = document.getElementById('mainOverlay');
+        const overlayTitle = document.getElementById('overlayTitle');
+        const overlayDesc = document.getElementById('overlayDesc');
+        const overlayBtn = document.getElementById('overlayBtn');
+        const introGuideBtn = document.getElementById('introGuideBtn');
+        const quizOverlay = document.getElementById('quizOverlay');
+        const quizTitle = document.getElementById('quizTitle');
+        const quizQuestion = document.getElementById('quizQuestion');
+        const quizChoices = document.getElementById('quizChoices');
+        const guideModal = document.getElementById('guideModal');
+
+        function startRound() {
+            initAudio();
+            mainOverlay.classList.remove('active', 'overheat');
+            guideModal.classList.remove('active');
+            quizOverlay.classList.remove('active');
+
+            gameState.heat = 0;
+            gameState.placedParts.clear();
+            gameState.selectedPartId = null;
+            gameState.isPlaying = true;
+            gameState.isPaused = false;
+
+            // Distribute all 13 parts across 3 rounds
+            if (gameState.round === 1) {
+                gameState.requiredParts = ['board', 'cpu', 'paste', 'cooler', 'ram'];
+                gameState.heatRate = 0.35;
+            } else if (gameState.round === 2) {
+                gameState.requiredParts = ['gpu', 'ssd', 'hdd', 'psu', 'fan'];
+                gameState.heatRate = 0.5;
+         } else {
+
+    // ROUND 3: SYSTEM SETUP AND VERIFICATION
+    // Accessories: Connect or inspect external peripherals.
+    // BIOS/UEFI: Verify hardware detection in firmware settings.
+    // WiFi: Identify and configure the system's wireless hardware.
+    //
+    // These are learning activities, not necessarily
+    // physical motherboard installation tasks.
+
+    gameState.requiredParts = ['accessories', 'bios', 'wifi'];
+    // ROUND 3: NO HEAT BUILDUP
+// Allow players time to explore system setup and firmware.
+    gameState.heatRate = 0;
+}
+
+            
+    // ROUND DISPLAY
+    // Show the appropriate heading for the current round.
+
+    if (gameState.round === 3) {
+
+        // Round 3 focuses on setup and verification,
+        // rather than installing additional motherboard parts.
+        roundLabel.textContent = "ROUND 3 / SYSTEM SETUP";
+
+    } else {
+
+        // Rounds 1 and 2 retain their original headings.
+        roundLabel.textContent = `ROUND ${gameState.round} / 3`;
+    }
+
+    // DISPLAY THE GAME INTERFACE
+    // Keep the existing hardware interface working.
+    renderSidebar();
+    renderMotherboard();
+
+
+            if (gameState.bgmEnabled && !gameState.bgmInterval) {
+                gameState.bgmInterval = setInterval(playArcadeNote, 220);
+            }
+
+            if (gameState.timerInterval) clearInterval(gameState.timerInterval);
+            gameState.timerInterval = setInterval(updateGameLoop, 100);
+        }
+
+        function updateGameLoop() {
+            if (!gameState.isPlaying || gameState.isPaused) return;
+            gameState.heat += gameState.heatRate;
+            let heatPct = (gameState.heat / gameState.maxHeat) * 100;
+            heatFill.style.width = heatPct + '%';
+            heatFill.style.background = heatPct < 50 ? 'var(--accent-teal)' : heatPct < 85 ? 'var(--warning)' : 'var(--danger)';
+
+            if (gameState.heat >= gameState.maxHeat) triggerOverheat();
+        }
+
+        function triggerOverheat() {
+            gameState.isPlaying = false;
+            clearInterval(gameState.timerInterval);
+            if (gameState.bgmInterval) { clearInterval(gameState.bgmInterval); gameState.bgmInterval = null; }
+            playSound('overheat');
+            mainOverlay.classList.add('active', 'overheat');
+            overlayTitle.textContent = "OVERHEATED";
+            overlayDesc.textContent = "Thermal threshold exceeded! The rig shut down.";
+            overlayBtn.textContent = "TRY ROUND AGAIN";
+            introGuideBtn.style.display = "none";
+        }
+
+        function renderSidebar() {
+            const trayLabel = sidebar.querySelector('.sidebar-title');
+            sidebar.innerHTML = ''; sidebar.appendChild(trayLabel);
+
+            gameState.requiredParts.forEach(partId => {
+                if (!gameState.placedParts.has(partId)) {
+                    const partData = HARDWARE_DB.find(p => p.id === partId);
+                    const card = document.createElement('div');
+                    card.className = `part-card ${gameState.selectedPartId === partId ? 'selected-tap' : ''}`;
+                    // Firmware is inspected by clicking, never dragged into a socket.
+                    card.draggable = gameState.round !== 3;
+                    card.innerHTML = `
+                        <div class="part-icon">${SVG_ICONS[partData.category] || SVG_ICONS.board}</div>
+                        <div class="part-name">${partData.name}</div>
+                    `;
+                    card.addEventListener('dragstart', (e) => {
+                        if (gameState.round === 3) { e.preventDefault(); return; }
+                        e.dataTransfer.setData('text/plain', partId);
+                    });
+                    
+card.addEventListener('click', () => {
+
+    // ROUND 3: BIOS/UEFI FIRMWARE ACTIVITY
+    // BIOS/UEFI is firmware stored on the motherboard.
+    // The player should inspect firmware settings,
+    // not install BIOS as a separate hardware component.
+
+    if (gameState.round === 3 && partId === 'bios') {
+
+        // Clear any previously selected hardware component.
+        gameState.selectedPartId = null;
+
+        // Play the normal button-click sound.
+        playSound('click');
+
+        // Firmware verification is a setup activity, not a physical installation.
+        // Mark it complete only once, so the score cannot be collected repeatedly.
+        if (!gameState.placedParts.has('bios') && gameState.isPlaying) {
+		
+    // ROUND 3: OPEN THE SIMULATED UEFI SCREEN
+    // Call the function we created at the bottom of the file.
+    // This displays the CPU, RAM, and storage information.
+    openUEFI();
+
+        }
+
+        // Stop here so BIOS cannot be selected for installation.
+        return;
+    }
+
+    // ROUND 3: EXTERNAL PERIPHERALS AND WIRELESS CONFIGURATION
+    // These are interactive setup tasks, not motherboard installations.
+    if (gameState.round === 3 && (partId === 'accessories' || partId === 'wifi')) {
+        if (!gameState.isPlaying || gameState.isPaused) return;
+        gameState.selectedPartId = null;
+        playSound('click');
+        openSetupActivity(partId);
+        return;
+    }
+
+    // LEVEL 1: ORIGINAL COMPONENT SELECTION
+    // Keep the existing behavior for other components.
+    playSound('click');
+
+    document.querySelectorAll('.part-card').forEach(c =>
+        c.classList.remove('selected-tap')
+    );
+
+    gameState.selectedPartId =
+        gameState.selectedPartId === partId ? null : partId;
+
+    if (gameState.selectedPartId) {
+        card.classList.add('selected-tap');
+    }
+});
+
+                    sidebar.appendChild(card);
+                }
+            });
+        }
+
+        function renderMotherboard() {
+            const boardLabel = motherboard.querySelector('.board-label');
+            motherboard.innerHTML = ''; motherboard.appendChild(boardLabel);
+
+            // LEVEL 2: DISPLAY ALL HARDWARE COMPONENTS
+// Level 1 shows only the parts required for the current round.
+// Level 2 shows every component so the player can inspect
+// the complete computer.
+
+const partsToDisplay = campaignStage.startsWith('level2')
+    ? HARDWARE_DB.map(part => part.id)
+    : gameState.requiredParts;
+
+// Create motherboard sockets for the selected components.
+partsToDisplay.forEach(partId => {
+                const partData = HARDWARE_DB.find(p => p.id === partId);
+                const isFilled = campaignStage.startsWith('level2') || gameState.placedParts.has(partId);
+                const socket = document.createElement('div');
+                socket.className = `socket ${isFilled ? 'filled' : ''}`;
+                socket.innerHTML = `
+                    <div class="socket-title">${partData.name}</div>
+                    <div class="socket-content">${gameState.round === 3 && !campaignStage.startsWith('level2') ? (isFilled ? 'COMPLETE ✓' : 'SELECT IN TRAY') : (isFilled ? 'INSTALLED ✓' : 'EMPTY')}</div>
+                `;
+                socket.addEventListener('dragover', (e) => {
+                    if (gameState.round === 3 || campaignStage.startsWith('level2')) return;
+                    e.preventDefault(); socket.classList.add('highlight');
+                });
+                socket.addEventListener('dragleave', () => socket.classList.remove('highlight'));
+                socket.addEventListener('drop', (e) => {
+                    e.preventDefault(); socket.classList.remove('highlight');
+                    if (gameState.round !== 3 && !campaignStage.startsWith('level2')) {
+                        handlePartPlacement(e.dataTransfer.getData('text/plain'), partId);
+                    }
+                });
+                
+socket.addEventListener('click', () => {
+
+    // LEVEL 2: HARDWARE INVESTIGATION
+    // If the player is investigating, inspect the clicked
+    // component instead of trying to install hardware.
+
+    if (campaignStage === 'level2Investigating') {
+
+        // Level 2 represents the fully assembled PC from Level 1.
+        inspectComponent(partId);
+
+        // Stop here so Level 1 installation code does not run.
+        return;
+    }
+
+    // LEVEL 1: HARDWARE INSTALLATION
+    // Keep the original installation behavior unchanged.
+    if (gameState.selectedPartId) {
+        handlePartPlacement(gameState.selectedPartId, partId);
+        gameState.selectedPartId = null;
+    }
+
+    }); // End of click listener
+
+	// Add the component to the motherboard
+	// Display the socket immediately when the board is rendered.
+	motherboard.appendChild(socket);
+
+}); // End of required.Parts.forEach loop
+
+} // End of renderMotherboard function
+
+
+ // LEVEL 2: EVIDENCE-BASED COMPONENT INSPECTION
+ // Players inspect installed components, then diagnose from observed evidence.
+ const missionInspected = new Set();
+ const missionRequired = ['cooler', 'fan', 'paste'];
+ const missionEvidence = {
+     cooler: 'CPU cooler fan not spinning. The fan power cable appears disconnected from the CPU_FAN motherboard header.',
+     fan: 'Case fan operated normally before shutdown. Case airflow is not the leading suspect.',
+     paste: 'No obvious paste problem is visible. A visual check alone cannot confirm paste quality.',
+     ram: 'RAM was detected successfully. No evidence ties it to this overheating event.'
+ };
+
+ function renderMissionSidebar() {
+     if (campaignStage !== 'level2Investigating') return;
+     sidebar.innerHTML = '';
+     const panel = document.createElement('div');
+     panel.className = 'mission-panel';
+     const count = missionRequired.filter(id => missionInspected.has(id)).length;
+     panel.innerHTML = '<strong style="color:var(--accent-teal)">DIAGNOSTIC LOG</strong>';
+     const progress = document.createElement('p');
+     progress.textContent = `Inspected ${count}/${missionRequired.length} key components. Click CPU Cooler, Case Fan, and Thermal Paste on the board.`;
+     panel.appendChild(progress);
+     missionRequired.forEach(id => {
+         const row = document.createElement('p');
+         row.textContent = (missionInspected.has(id) ? '✓ ' : '○ ') + HARDWARE_DB.find(p => p.id === id).name;
+         panel.appendChild(row);
+     });
+     const diagnose = document.createElement('button');
+     diagnose.className = 'btn';
+     diagnose.textContent = 'SUBMIT DIAGNOSIS';
+     diagnose.disabled = count !== missionRequired.length;
+     diagnose.addEventListener('click', showMissionDiagnosis);
+     panel.appendChild(diagnose);
+     sidebar.appendChild(panel);
+ }
+
+ function inspectComponent(partId) {
+     if (campaignStage !== 'level2Investigating') return;
+     const part = HARDWARE_DB.find(p => p.id === partId);
+     if (!part) return;
+     missionInspected.add(partId);
+     playSound('click');
+     quizOverlay.classList.add('active');
+     quizTitle.textContent = 'COMPONENT INSPECTION';
+     quizQuestion.textContent = part.name;
+     quizChoices.innerHTML = '';
+     const finding = document.createElement('div');
+     finding.className = 'setup-info';
+     finding.textContent = missionEvidence[partId] || 'No observation links this component to the overheating symptoms.';
+     quizChoices.appendChild(finding);
+     const back = document.createElement('button');
+     back.className = 'btn';
+     back.textContent = 'RETURN TO SYSTEM';
+     back.addEventListener('click', () => {
+         quizOverlay.classList.remove('active');
+         renderMissionSidebar();
+     });
+     quizChoices.appendChild(back);
+ }
+
+ // Reusable choice screen: correct answers advance; wrong answers give feedback.
+ function showMissionChoice(title, question, options, onCorrect) {
+     quizOverlay.classList.add('active');
+     quizTitle.textContent = title;
+     quizQuestion.textContent = question;
+     quizChoices.innerHTML = '';
+     const feedback = document.createElement('p');
+     feedback.className = 'setup-status';
+     options.forEach(option => {
+         const btn = document.createElement('button');
+         btn.className = 'quiz-btn';
+         btn.textContent = option.text;
+         btn.addEventListener('click', () => {
+             if (!option.correct) {
+                 playSound('click');
+                 feedback.textContent = option.feedback;
+                 return;
+             }
+             playSound('success');
+             quizQuestion.textContent = option.feedback;
+             quizChoices.innerHTML = '';
+             const next = document.createElement('button');
+             next.className = 'btn';
+             next.textContent = 'CONTINUE';
+             next.addEventListener('click', onCorrect);
+             quizChoices.appendChild(next);
+         });
+         quizChoices.appendChild(btn);
+     });
+     quizChoices.appendChild(feedback);
+ }
+
+ function showMissionDiagnosis() {
+     if (campaignStage !== 'level2Investigating' ||
+         !missionRequired.every(id => missionInspected.has(id))) return;
+     campaignStage = 'level2Diagnosing';
+     showMissionChoice('MISSION 1 / DIAGNOSIS',
+         'The CPU reaches 95°C and the computer shuts down. The CPU cooler fan is stopped, while the case fan works. What is the most likely cause?', [
+         {text:'A disconnected CPU cooler fan power cable', correct:true,
+          feedback:'Correct. The stopped cooler fan and disconnected CPU_FAN cable explain the cooling failure in this scenario.'},
+         {text:'The computer has too much RAM', correct:false,
+          feedback:'RAM capacity does not explain the stopped CPU cooler fan.'},
+         {text:'The SSD is too full', correct:false,
+          feedback:'Storage capacity is not evidence of a disconnected cooler fan.'}
+     ], showMissionSafety);
+ }
+
+ function showMissionSafety() {
+     campaignStage = 'level2Repair';
+     showMissionChoice('MISSION 1 / SAFE REPAIR',
+         'Before touching the CPU cooler cable inside the computer, what should you do?', [
+         {text:'Shut down, disconnect power, and follow anti-static precautions', correct:true,
+          feedback:'Correct. Power down, unplug the system, and use appropriate anti-static precautions before internal inspection.'},
+         {text:'Reach inside while the PC is running', correct:false,
+          feedback:'Do not handle internal connections while the system is powered.'},
+         {text:'Increase CPU clock speed', correct:false,
+          feedback:'That could increase heat and does not repair the fan connection.'}
+     ], showMissionRepair);
+ }
+
+ function showMissionRepair() {
+     showMissionChoice('MISSION 1 / RESTORE COOLING',
+         'With the system powered off and unplugged, you confirm the CPU cooler fan cable is disconnected. What repair matches the evidence?', [
+         {text:'Reconnect the cooler fan cable to the correct CPU_FAN header and check it is secure', correct:true,
+          feedback:'Correct. Reconnecting the fan to the proper header addresses the observed fault. Confirm the connector orientation and motherboard documentation.'},
+         {text:'Remove the CPU cooler and run without it', correct:false,
+          feedback:'Never run the CPU without appropriate cooling.'},
+         {text:'Replace the keyboard', correct:false,
+          feedback:'The keyboard is unrelated to the fan connection.'}
+     ], showMissionVerification);
+ }
+
+ function showMissionVerification() {
+     campaignStage = 'level2Verifying';
+     showMissionChoice('MISSION 1 / VERIFY REPAIR',
+         'The simulated system restarts. The CPU cooler fan spins and the CPU stabilizes at 43°C under light load. What is the best final step?', [
+         {text:'Monitor fan operation and temperatures under an appropriate test workload', correct:true,
+          feedback:'Correct. Observe temperatures and fan operation under a controlled test. A single temperature reading does not guarantee every workload is safe.'},
+         {text:'Ignore future shutdowns', correct:false,
+          feedback:'Future warnings require investigation; the system must remain stable.'},
+         {text:'Disconnect the fan again', correct:false,
+          feedback:'That would recreate the cooling failure.'}
+     ], finishMission1);
+ }
+
+ function finishMission1() {
+     if (campaignStage !== 'level2Verifying') return;
+     campaignStage = 'level2Mission1Complete';
+     gameState.score += 300; // One-time mission completion reward.
+     scoreVal.textContent = gameState.score;
+     quizOverlay.classList.remove('active');
+     mainOverlay.classList.remove('overheat');
+     mainOverlay.classList.add('active');
+     overlayTitle.textContent = 'MISSION 1 COMPLETE';
+     overlayDesc.textContent = 'You investigated a 95°C shutdown, identified a disconnected CPU cooler fan cable, followed safe repair steps, and verified stable operation. +300 points. Level 2 Mission 1 is complete.';
+     overlayBtn.textContent = 'BEGIN LEVEL 3';
+     introGuideBtn.style.display = 'block';
+ }
+
+
+
+// LEVEL 3 ADDITION: Uses the existing overlays, buttons, fonts, colors, sounds and score.
+const level3Missions = [
+  { name: "MISSION 1 / FIRST BOOT", intro: "The repaired PC is ready to start. Check firmware, select a boot device, and install an operating system.", steps: [
+    { q: "What should you check in BIOS/UEFI before installing an OS?", options: [
+      {text:"The CPU, RAM, and storage are detected",correct:true,feedback:"Correct. Firmware checks help confirm essential hardware is recognized."},
+      {text:"Disable cooling fans",correct:false,feedback:"Not quite. Firmware checks help confirm essential hardware is recognized."},
+      {text:"Erase the firmware",correct:false,feedback:"Not quite. Firmware checks help confirm essential hardware is recognized."},
+    ]},
+    { q: "The CPU cooler was repaired in Level 2. What should you verify at startup?", options: [
+      {text:"CPU fan operation and safe temperatures",correct:true,feedback:"Correct. Verify the repair before placing the PC under load."},
+      {text:"That the fan cable is removed",correct:false,feedback:"Not quite. Verify the repair before placing the PC under load."},
+      {text:"That thermal warnings are disabled",correct:false,feedback:"Not quite. Verify the repair before placing the PC under load."},
+    ]},
+    { q: "Where should a trusted operating system installer come from?", options: [
+      {text:"The official OS vendor or a verified source",correct:true,feedback:"Correct. Trusted installation media reduces the risk of tampering."},
+      {text:"An unknown download link",correct:false,feedback:"Not quite. Trusted installation media reduces the risk of tampering."},
+      {text:"An unsolicited email attachment",correct:false,feedback:"Not quite. Trusted installation media reduces the risk of tampering."},
+    ]},
+    { q: "How do you start the installer from a bootable USB drive?", options: [
+      {text:"Choose the USB installer in the UEFI boot menu",correct:true,feedback:"Correct. Boot selection determines which device starts the installer."},
+      {text:"Disconnect the SSD while powered on",correct:false,feedback:"Not quite. Boot selection determines which device starts the installer."},
+      {text:"Select the monitor as a boot device",correct:false,feedback:"Not quite. Boot selection determines which device starts the installer."},
+    ]},
+    { q: "What should you do before selecting an installation disk?", options: [
+      {text:"Back up needed data and confirm the target disk",correct:true,feedback:"Correct. Installing an OS can erase data on the chosen disk."},
+      {text:"Format every connected disk",correct:false,feedback:"Not quite. Installing an OS can erase data on the chosen disk."},
+      {text:"Remove all RAM",correct:false,feedback:"Not quite. Installing an OS can erase data on the chosen disk."},
+    ]},
+    { q: "Which drive should hold the new operating system?", options: [
+      {text:"The intended internal SSD",correct:true,feedback:"Correct. The internal SSD is the intended system drive in this scenario."},
+      {text:"The installer USB drive",correct:false,feedback:"Not quite. The internal SSD is the intended system drive in this scenario."},
+      {text:"The CPU cache",correct:false,feedback:"Not quite. The internal SSD is the intended system drive in this scenario."},
+    ]},
+    { q: "Which setup choice helps avoid accidentally deleting another disk?", options: [
+      {text:"Check disk name, capacity, and partitions before confirming",correct:true,feedback:"Correct. Identify the exact target before making destructive changes."},
+      {text:"Choose the first disk without checking",correct:false,feedback:"Not quite. Identify the exact target before making destructive changes."},
+      {text:"Erase every partition on every disk",correct:false,feedback:"Not quite. Identify the exact target before making destructive changes."},
+    ]},
+    { q: "What should happen after installation finishes and the PC restarts?", options: [
+      {text:"Boot into the installed operating system",correct:true,feedback:"Correct. Successful installation includes booting from the internal drive."},
+      {text:"Keep restarting the installer forever",correct:false,feedback:"Not quite. Successful installation includes booting from the internal drive."},
+      {text:"Stop the CPU cooler fan",correct:false,feedback:"Not quite. Successful installation includes booting from the internal drive."},
+    ]},
+    { q: "What should you check if the OS cannot find the network adapter?", options: [
+      {text:"Device detection and trusted drivers",correct:true,feedback:"Correct. A missing or incompatible driver can prevent network access."},
+      {text:"Replace the CPU immediately",correct:false,feedback:"Not quite. A missing or incompatible driver can prevent network access."},
+      {text:"Disable all security controls",correct:false,feedback:"Not quite. A missing or incompatible driver can prevent network access."},
+    ]},
+    { q: "What confirms Mission 1 is ready to hand off to security setup?", options: [
+      {text:"The OS boots, devices are detected, and cooling is stable",correct:true,feedback:"Correct. A stable boot and working hardware establish a usable starting point."},
+      {text:"Only the case lights turn on",correct:false,feedback:"Not quite. A stable boot and working hardware establish a usable starting point."},
+      {text:"The keyboard is unplugged",correct:false,feedback:"Not quite. A stable boot and working hardware establish a usable starting point."},
+    ]},
+  ]},
+  { name: "MISSION 2 / SECURE THE SYSTEM", intro: "Your operating system is running. Secure the computer and verify that it is ready for everyday use.", steps: [
+    { q: "What is an important first step after installing the OS?", options: [
+      {text:"Install trusted OS and driver security updates",correct:true,feedback:"Correct. Updates address known vulnerabilities and compatibility problems."},
+      {text:"Disable all updates",correct:false,feedback:"Not quite. Updates address known vulnerabilities and compatibility problems."},
+      {text:"Share the administrator password",correct:false,feedback:"Not quite. Updates address known vulnerabilities and compatibility problems."},
+    ]},
+    { q: "Which account is best for everyday tasks?", options: [
+      {text:"A standard account with least privilege",correct:true,feedback:"Correct. Least privilege limits damage from mistakes or compromise."},
+      {text:"A shared administrator account",correct:false,feedback:"Not quite. Least privilege limits damage from mistakes or compromise."},
+      {text:"An account without a password",correct:false,feedback:"Not quite. Least privilege limits damage from mistakes or compromise."},
+    ]},
+    { q: "What is a strong sign-in practice?", options: [
+      {text:"Use a unique strong password and MFA where available",correct:true,feedback:"Correct. Strong authentication helps protect accounts."},
+      {text:"Reuse one short password",correct:false,feedback:"Not quite. Strong authentication helps protect accounts."},
+      {text:"Write the password on the monitor",correct:false,feedback:"Not quite. Strong authentication helps protect accounts."},
+    ]},
+    { q: "How should the host firewall be configured?", options: [
+      {text:"Keep it on and allow only necessary traffic",correct:true,feedback:"Correct. A firewall helps limit unwanted network traffic."},
+      {text:"Disable it for every network",correct:false,feedback:"Not quite. A firewall helps limit unwanted network traffic."},
+      {text:"Allow all inbound connections",correct:false,feedback:"Not quite. A firewall helps limit unwanted network traffic."},
+    ]},
+    { q: "What should you do with built-in malware protection?", options: [
+      {text:"Keep protection enabled and definitions current",correct:true,feedback:"Correct. Up-to-date protection helps detect common threats."},
+      {text:"Turn it off permanently",correct:false,feedback:"Not quite. Up-to-date protection helps detect common threats."},
+      {text:"Ignore malware alerts",correct:false,feedback:"Not quite. Up-to-date protection helps detect common threats."},
+    ]},
+    { q: "How should you connect to a home wireless network?", options: [
+      {text:"Use the intended network with WPA2-AES or WPA3 security",correct:true,feedback:"Correct. Verify the network identity and use modern wireless protection."},
+      {text:"Join any similarly named open network",correct:false,feedback:"Not quite. Verify the network identity and use modern wireless protection."},
+      {text:"Turn off Wi-Fi encryption",correct:false,feedback:"Not quite. Verify the network identity and use modern wireless protection."},
+    ]},
+    { q: "Why should you enable automatic updates?", options: [
+      {text:"To receive security fixes promptly",correct:true,feedback:"Correct. Automatic updates reduce exposure to known vulnerabilities."},
+      {text:"To make backups unnecessary",correct:false,feedback:"Not quite. Automatic updates reduce exposure to known vulnerabilities."},
+      {text:"To disable the firewall",correct:false,feedback:"Not quite. Automatic updates reduce exposure to known vulnerabilities."},
+    ]},
+    { q: "What is the safest way to prepare for hardware or disk failure?", options: [
+      {text:"Create and test a backup or recovery plan",correct:true,feedback:"Correct. Recoverable backups protect against data loss."},
+      {text:"Keep only one copy of files",correct:false,feedback:"Not quite. Recoverable backups protect against data loss."},
+      {text:"Assume the SSD cannot fail",correct:false,feedback:"Not quite. Recoverable backups protect against data loss."},
+    ]},
+    { q: "What should you check after security changes?", options: [
+      {text:"Network, drivers, firewall, updates, and system alerts",correct:true,feedback:"Correct. Verify that the PC remains functional and protected."},
+      {text:"Only the wallpaper",correct:false,feedback:"Not quite. Verify that the PC remains functional and protected."},
+      {text:"Only the case lighting",correct:false,feedback:"Not quite. Verify that the PC remains functional and protected."},
+    ]},
+    { q: "What is the final readiness check for this repaired PC?", options: [
+      {text:"Confirm stable temperatures, normal fan operation, and secure settings",correct:true,feedback:"Correct. Readiness includes both hardware stability and security."},
+      {text:"Ignore shutdown warnings",correct:false,feedback:"Not quite. Readiness includes both hardware stability and security."},
+      {text:"Disconnect the cooler fan again",correct:false,feedback:"Not quite. Readiness includes both hardware stability and security."},
+    ]},
+  ]},
+];
+
+function updateLevel3Progress(done, total, label) {
+  let meter = document.getElementById('level3Progress');
+  if (!meter) {
+    meter = document.createElement('div');
+    meter.id = 'level3Progress';
+    meter.className = 'level3-progress-wrap';
+    meter.innerHTML = '<div class="level3-loading-heading">LOADING<span class="level3-loading-dots" aria-hidden="true"></span></div><div class="level3-progress-track" role="progressbar" aria-label="Correct answers completed" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="level3-progress-fill" id="level3ProgressFill"></div></div><div class="level3-progress-percent" id="level3ProgressPercent">0%</div><div class="level3-progress-detail"><span id="level3ProgressName"></span> — <span id="level3ProgressCount"></span></div>';
+    quizQuestion.parentNode.insertBefore(meter, quizQuestion);
+  }
+  const percent = Math.round(100 * done / total);
+  const isMission2 = label === 'MISSION 2';
+  meter.classList.toggle('system-status', isMission2);
+  meter.classList.remove('status-yellow', 'status-green', 'system-stable');
+  document.getElementById('level3ProgressName').textContent = label;
+  document.getElementById('level3ProgressCount').textContent = done + ' / ' + total + ' CORRECT';
+  document.getElementById('level3ProgressFill').style.width = isMission2 ? '100%' : percent + '%';
+  const heading = meter.querySelector('.level3-loading-heading');
+  const percentLabel = document.getElementById('level3ProgressPercent');
+  if (isMission2) {
+    // The bar fills as correct answers repair the system; severity drops from 100% to 0%.
+    const critical = 100 - percent;
+    const status = critical === 0 ? 'SYSTEM STABLE' : critical <= 30 ? 'SYSTEM HEALTHY' : critical <= 60 ? 'SYSTEM WARNING' : 'SYSTEM CRITICAL';
+    if (critical <= 60 && critical > 30) meter.classList.add('status-yellow');
+    if (critical <= 30) meter.classList.add('status-green');
+    meter.style.setProperty('--system-recovery', percent + '%');
+    meter.style.setProperty('--system-blink-duration', critical > 60 ? '.65s' : critical > 30 ? '1.35s' : '0s');
+    meter.classList.toggle('system-stable', critical === 0);
+    heading.textContent = critical === 0 ? 'SYSTEM STABLE' : 'SYSTEM CRITICAL';
+    percentLabel.textContent = '';
+    meter.querySelector('[role="progressbar"]').setAttribute('aria-label', 'System recovery completed');
+  } else {
+    heading.innerHTML = 'LOADING<span class="level3-loading-dots" aria-hidden="true"></span>';
+    percentLabel.textContent = percent + '%';
+    meter.querySelector('[role="progressbar"]').setAttribute('aria-label', 'Correct answers completed');
+  }
+  meter.querySelector('[role="progressbar"]').setAttribute('aria-valuenow', percent);
+}
+// LEVEL 3: 15-question final assessment, shuffled like Level 1.
+const LEVEL3_FINAL_TEST = [
+  {q:"Which firmware interface can confirm CPU, RAM, and SSD detection?",choices:["BIOS/UEFI", "Task Manager", "Web browser", "Audio mixer"],correct:0,topic:"firmware"},
+  {q:"What should you verify after repairing a CPU cooler?",choices:["Fan operation and safe CPU temperature", "Maximum screen brightness", "SSD color", "Keyboard layout"],correct:0,topic:"cooling"},
+  {q:"Where should OS installation media be obtained?",choices:["Official or verified source", "Random pop-up advertisement", "Unknown attachment", "Untrusted mirror"],correct:0,topic:"media"},
+  {q:"How do you start a bootable installer USB?",choices:["Select it in the boot menu", "Select the monitor", "Unplug RAM", "Disable storage"],correct:0,topic:"boot"},
+  {q:"What should happen before changing disk partitions?",choices:["Back up important data", "Disable the CPU fan", "Remove the power supply", "Turn off the monitor"],correct:0,topic:"disk"},
+  {q:"Where should the OS be installed in this scenario?",choices:["The intended internal SSD", "The installer USB", "RAM", "CPU cache"],correct:0,topic:"disk"},
+  {q:"What indicates a successful OS installation?",choices:["The PC boots into the installed OS", "The installer loops forever", "The CPU fan stops", "The SSD disappears"],correct:0,topic:"boot"},
+  {q:"What is a good source for missing device drivers?",choices:["Hardware manufacturer or OS update service", "Unknown driver pop-up", "Unverified email attachment", "Any social media link"],correct:0,topic:"drivers"},
+  {q:"Why install security updates?",choices:["To fix known vulnerabilities", "To disable encryption", "To remove backups", "To stop the firewall"],correct:0,topic:"updates"},
+  {q:"Which account type is best for routine work?",choices:["Standard user", "Shared administrator", "Guest with no password", "Unrestricted root login"],correct:0,topic:"accounts"},
+  {q:"Which sign-in setup is stronger?",choices:["Unique password plus MFA", "Reused short password", "No password", "Shared password"],correct:0,topic:"accounts"},
+  {q:"How should a host firewall be set?",choices:["Enabled with only needed connections allowed", "Off on every network", "Allow all inbound traffic", "Disabled after updates"],correct:0,topic:"firewall"},
+  {q:"Which wireless configuration is preferable?",choices:["Verified network with WPA2-AES or WPA3", "Unknown open hotspot", "Unencrypted network", "Any similarly named SSID"],correct:0,topic:"wifi"},
+  {q:"What protects files if a drive fails?",choices:["Tested backups", "A brighter monitor", "Disabling updates", "Ignoring errors"],correct:0,topic:"backup"},
+  {q:"What completes the final system check?",choices:["Verify temperatures, drivers, network, updates, and security", "Check wallpaper only", "Ignore system warnings", "Disconnect the CPU fan"],correct:0,topic:"verification"},
+];
+let level3ExamIndex = 0;
+let level3ExamQuestions = [];
+function startLevel3Assessment() {
+  campaignStage = "level3Assessment";
+  level3ExamIndex = 0;
+  level3ExamQuestions = shuffleItems(LEVEL3_FINAL_TEST);
+  showLevel3AssessmentStep();
+}
+function showLevel3AssessmentStep() {
+  if (level3ExamIndex >= level3ExamQuestions.length) {
+    finishLevel3Assessment();
+    return;
+  }
+  const quiz = level3ExamQuestions[level3ExamIndex];
+  quizOverlay.classList.add("active");
+  quizTitle.textContent = `LEVEL 3 FINAL ASSESSMENT (${level3ExamIndex + 1} / ${level3ExamQuestions.length})`;
+  quizQuestion.textContent = quiz.q;
+  updateLevel3Progress(level3ExamIndex, level3ExamQuestions.length, "FINAL ASSESSMENT");
+  quizChoices.innerHTML = "";
+  const choices = shuffleItems(quiz.choices.map((label, i) => ({label, correct:i===quiz.correct})));
+  choices.forEach(answer => {
+    const btn = document.createElement("button");
+    btn.className = "quiz-btn";
+    btn.textContent = answer.label;
+    btn.addEventListener("click", () => {
+      const advance = () => { level3ExamIndex++; showLevel3AssessmentStep(); };
+      if (answer.correct) {
+        playSound("success");
+        gameState.score += 150;
+        scoreVal.textContent = gameState.score;
+        advance();
+      } else {
+        playSound("click");
+        quizQuestion.textContent = "Not quite. Review the topic, then try this same question again to fill the loading bar.";
+        quizChoices.innerHTML = "";
+        const review = document.createElement("button");
+        review.className = "quiz-btn";
+        review.textContent = "📖 REVIEW THIS TOPIC";
+        review.addEventListener("click", () => {
+          populateGuide();
+          guideModal.classList.add("active");
+          const topic = document.querySelector(`[data-level3-topic="${quiz.topic}"]`);
+          if (topic) topic.scrollIntoView({block:"start"});
+        });
+        const next = document.createElement("button");
+        next.className = "btn";
+        next.textContent = "TRY AGAIN";
+        next.addEventListener("click", showLevel3AssessmentStep);
+        quizChoices.append(review, next);
+      }
+    });
+    quizChoices.appendChild(btn);
+  });
+}
+function finishLevel3Assessment() {
+  if (campaignStage !== "level3Assessment") return;
+  campaignStage = "level3Complete";
+  quizOverlay.classList.remove("active");
+  mainOverlay.classList.add("active");
+  overlayTitle.textContent = "LEVEL 3 COMPLETE!";
+  overlayDesc.textContent = "Both missions and the 15-question final assessment are complete. Total score: " + gameState.score + " PTS.";
+  overlayBtn.textContent = "REPLAY CAMPAIGN";
+}
+// Level 3 reuses the exact Level 1 dashboard controls and positions.
+let level3Paused = false;
+function setLevel3Dashboard(enabled) {
+  // Keep the original dashboard and button positions, but place Level 3 overlays below it.
+  const container = document.querySelector('.game-container');
+  const dashboard = container.querySelector('.dashboard');
+  container.style.setProperty('--level3-overlay-top', (dashboard.offsetTop + dashboard.offsetHeight) + 'px');
+  container.classList.toggle('level3-mode', enabled);
+  document.querySelector('.heat-container').style.visibility = enabled ? 'hidden' : 'visible';
+  document.getElementById('pauseBtn').textContent = '⏸';
+  level3Paused = false;
+}
+let level3MissionIndex = 0;
+let level3StepIndex = 0;
+function startLevel3() {
+  setLevel3Dashboard(true);
+  campaignStage = 'level3Intro';
+  gameState.isPlaying = false;
+  gameState.isPaused = false;
+  clearInterval(gameState.timerInterval);
+  clearInterval(gameState.bgmInterval);
+  gameState.timerInterval = null;
+  gameState.bgmInterval = null;
+  quizOverlay.classList.remove('active');
+  mainOverlay.classList.remove('overheat');
+  mainOverlay.classList.add('active');
+  roundLabel.textContent = 'LEVEL 3';
+  overlayTitle.textContent = 'CONFIGURE & SECURE YOUR PC';
+  overlayDesc.textContent = 'Complete the loading bar by answering each question correctly.';
+  overlayBtn.textContent = 'START MISSION 1';
+  introGuideBtn.style.display = 'block';
+}
+function startLevel3Mission(index) {
+  level3MissionIndex = index;
+  level3StepIndex = 0;
+  campaignStage = 'level3MissionIntro';
+  roundLabel.textContent = 'LEVEL 3 / MISSION ' + (index + 1);
+  mainOverlay.classList.add('active');
+  overlayTitle.textContent = level3Missions[index].name;
+  overlayDesc.textContent = index === 0
+    ? 'Complete the loading bar by answering each question correctly.'
+    : 'The system is critical, and every correct answer helps stabilize it.';
+  overlayBtn.textContent = 'BEGIN MISSION';
+}
+function level3NextStep() {
+  const mission = level3Missions[level3MissionIndex];
+  if (level3StepIndex >= mission.steps.length) {
+    gameState.score += 300;
+    scoreVal.textContent = gameState.score;
+    quizOverlay.classList.remove('active');
+    mainOverlay.classList.add('active');
+    if (level3MissionIndex === 0) {
+      campaignStage = 'level3Mission1Complete';
+      overlayTitle.textContent = 'MISSION 1 COMPLETE';
+      overlayDesc.textContent = 'You verified the hardware, booted trusted installation media, selected the correct drive, and started the operating system. +300 points.';
+      overlayBtn.textContent = 'START MISSION 2';
+    } else {
+      campaignStage = 'level3Mission2Complete';
+      overlayTitle.textContent = 'MISSION 2 COMPLETE';
+      overlayDesc.textContent = 'You secured and verified the PC. +300 points. FINAL ASSESSMENT INSTRUCTIONS: Answer all 15 questions correctly to fill the final loading bar to 100%. Questions and answer choices are shuffled. Wrong answers do not advance the bar: review the topic and retry the same question. There is no timer.';
+      overlayBtn.textContent = 'BEGIN FINAL ASSESSMENT';
+    }
+    return;
+  }
+  campaignStage = 'level3Active';
+  const step = mission.steps[level3StepIndex];
+  updateLevel3Progress(level3StepIndex, mission.steps.length, 'MISSION ' + (level3MissionIndex + 1));
+  showMissionChoice(mission.name + ' (' + (level3StepIndex + 1) + '/' + mission.steps.length + ')', step.q, shuffleItems(step.options), () => {
+    level3StepIndex++;
+    updateLevel3Progress(level3StepIndex, mission.steps.length, 'MISSION ' + (level3MissionIndex + 1));
+    level3NextStep();
+  });
+}
+function replayCampaign() {
+  setLevel3Dashboard(false);
+  campaignStage = 'level1';
+  gameState.round = 1;
+  gameState.score = 0;
+  gameState.finalTestIndex = 0;
+  scoreVal.textContent = '0';
+  startRound();
+}
+
+function handlePartPlacement(draggedId, targetSocketId) {
+    
+// ROUND 3: PREVENT FIRMWARE INSTALLATION
+    // BIOS/UEFI firmware is stored on the motherboard.
+    // It is not installed like RAM or a graphics card.
+    // Players will complete a firmware verification activity instead.
+
+    if (gameState.round === 3 || campaignStage.startsWith('level2')) {
+        return;
+    }
+
+// Original Hardware Installation
+// Only allow placement while the game is active
+            if (!gameState.isPlaying || gameState.isPaused) return;
+
+// Check whether the selected component matches its socket.
+            if (draggedId === targetSocketId && !gameState.placedParts.has(draggedId)) {
+                gameState.placedParts.add(draggedId);
+                playSound('snap');
+                gameState.score += 100;
+                scoreVal.textContent = gameState.score;
+                gameState.heat = Math.max(0, gameState.heat - 14);
+                renderSidebar(); renderMotherboard();
+                if (gameState.placedParts.size === gameState.requiredParts.length) completeRound();
+            } else {
+                playSound('click');
+            }
+        }
+
+        function completeRound() {
+            gameState.isPlaying = false;
+            clearInterval(gameState.timerInterval);
+            if (gameState.bgmInterval) { clearInterval(gameState.bgmInterval); gameState.bgmInterval = null; }
+            playSound('success');
+
+            if (gameState.round === 1 || gameState.round === 2) {
+                triggerMiniQuiz();
+            } else {
+                // ROUND 3: Start the original 13-question final assessment.
+                gameState.finalTestIndex = 0;
+                // Create a fresh randomized exam for each playthrough.
+                // Keep the original question bank unchanged for future games.
+                gameState.examQuestions = shuffleItems(ULTIMATE_FINAL_TEST.map((question, originalIndex) => ({
+                    ...question,
+                    topicId: HARDWARE_DB[originalIndex].id
+                })));
+                triggerFinalTestStep();
+            }
+        }
+
+        // ASSESSMENT REVIEW: When an answer is incorrect, explain why and
+        // offer a direct link to the relevant topic in the Learning & Review Guide.
+        // The player can review without losing their place in the assessment.
+        function showIncorrectAnswerReview(quiz, topicId, continueAssessment) {
+            playSound('click');
+            quizQuestion.textContent =
+                'Not quite. Correct answer: ' + quiz.choices[quiz.correct] +
+                '. Review the topic below, then continue.';
+            quizChoices.innerHTML = '';
+
+            const reviewButton = document.createElement('button');
+            reviewButton.className = 'quiz-btn';
+            reviewButton.textContent = '📖 REVIEW THIS TOPIC';
+            reviewButton.addEventListener('click', () => {
+                // The guide sits above the quiz, so closing it returns here.
+                populateGuide();
+                guideModal.classList.add('active');
+                const topic = document.querySelector('[data-review-topic="' + topicId + '"]');
+                if (topic) topic.scrollIntoView({ block: 'start' });
+            });
+
+            const continueButton = document.createElement('button');
+            continueButton.className = 'btn';
+            continueButton.textContent = 'CONTINUE ASSESSMENT';
+            continueButton.addEventListener('click', continueAssessment);
+            quizChoices.append(reviewButton, continueButton);
+        }
+
+        function triggerMiniQuiz() {
+            quizOverlay.classList.add('active');
+            quizTitle.textContent = `ROUND ${gameState.round} MINI-QUIZ (1.5x PTS)`;
+            const quizSet = MINI_QUIZZES[gameState.round - 1];
+            const quiz = quizSet[Math.floor(Math.random() * quizSet.length)];
+            quizQuestion.textContent = quiz.q;
+            quizChoices.innerHTML = '';
+            quiz.choices.forEach((choice, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'quiz-btn';
+                btn.textContent = choice;
+                btn.addEventListener('click', () => {
+                    // Continue only once, after the answer or review is complete.
+                    const finishMiniQuiz = () => {
+                        quizOverlay.classList.remove('active');
+                        showRoundCompleteModal();
+                    };
+                    if (index === quiz.correct) {
+                        playSound('success');
+                        gameState.score += 200;
+                        scoreVal.textContent = gameState.score;
+                        finishMiniQuiz();
+                    } else {
+                        // Match the correct answer to the hardware guide entry.
+                        const correctName = quiz.choices[quiz.correct];
+                        const topic = HARDWARE_DB.find(part =>
+                            part.name.toLowerCase() === correctName.toLowerCase()
+                        );
+                        showIncorrectAnswerReview(quiz, topic ? topic.id : 'board', finishMiniQuiz);
+                    }
+                });
+                quizChoices.appendChild(btn);
+            });
+        }
+
+        // RANDOMIZATION: Fisher-Yates shuffle makes a new independent copy.
+        // This changes the order without changing the original answer key.
+        function shuffleItems(items) {
+            const shuffled = [...items];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        // FINAL EXAM: Shuffle both question order and answer placement.
+        // Each answer retains its correct/incorrect flag after shuffling.
+        function triggerFinalTestStep() {
+            quizOverlay.classList.add('active');
+            quizTitle.textContent = `ULTIMATE FINAL EXAM (${gameState.finalTestIndex + 1} / ${gameState.examQuestions.length})`;
+            const quiz = gameState.examQuestions[gameState.finalTestIndex];
+            quizQuestion.textContent = quiz.q;
+            quizChoices.innerHTML = '';
+
+            const answers = shuffleItems(quiz.choices.map((label, index) => ({
+                label,
+                correct: index === quiz.correct
+            })));
+
+            answers.forEach(answer => {
+                const btn = document.createElement('button');
+                btn.className = 'quiz-btn';
+                btn.textContent = answer.label;
+                btn.addEventListener('click', () => {
+                    const advanceExam = () => {
+                        quizOverlay.classList.remove('active');
+                        gameState.finalTestIndex++;
+                        if (gameState.finalTestIndex < gameState.examQuestions.length) {
+                            triggerFinalTestStep();
+                        } else {
+                            showVictoryModal();
+                        }
+                    };
+                    if (answer.correct) {
+                        playSound('success');
+                        gameState.score += 150;
+                        scoreVal.textContent = gameState.score;
+                        advanceExam();
+                    } else {
+                        // topicId travels with the question, even after shuffling.
+                        showIncorrectAnswerReview(quiz, quiz.topicId, advanceExam);
+                    }
+                });
+                quizChoices.appendChild(btn);
+            });
+        }
+
+        function showRoundCompleteModal() {
+            mainOverlay.classList.add('active');
+            overlayTitle.textContent = `ROUND ${gameState.round} COMPLETED!`;
+            overlayDesc.textContent = `All parts installed successfully! Score: ${gameState.score} PTS.`;
+            overlayBtn.textContent = "START ROUND " + (gameState.round + 1);
+            introGuideBtn.style.display = "none";
+            gameState.round++;
+        }
+
+                let campaignStage = 'level1';
+
+        function showVictoryModal() {
+            campaignStage = 'level1Complete';
+            gameState.isPlaying = false;
+            gameState.isPaused = false;
+
+            mainOverlay.classList.remove('overheat');
+            mainOverlay.classList.add('active');
+            overlayTitle.textContent = "LEVEL 1 COMPLETE!";
+            overlayDesc.textContent =
+                `All 13 hardware and setup activities completed, and the final exam finished! Score: ${gameState.score} PTS. Next assignment: protect the computer you built.`;
+            overlayBtn.textContent = "BEGIN LEVEL 2";
+            introGuideBtn.style.display = "block";
+        }
+
+        function startLevel2() {
+            campaignStage = 'level2';
+            gameState.isPlaying = false;
+            gameState.isPaused = false;
+
+            // Stop Level 1's heat and music timers.
+            clearInterval(gameState.timerInterval);
+            gameState.timerInterval = null;
+            clearInterval(gameState.bgmInterval);
+            gameState.bgmInterval = null;
+
+            gameState.selectedPartId = null;
+            gameState.heat = 0;
+            heatFill.style.width = '0%';
+
+            roundLabel.textContent = "LEVEL 2";
+            scoreVal.textContent = gameState.score;
+            overlayTitle.textContent = "PROTECT YOUR SYSTEM";
+            overlayDesc.textContent =
+                `Your Level 1 score carries forward: ${gameState.score} PTS. Investigate your assembled computer and respond to a cooling-system failure.`;
+            overlayBtn.textContent = "START MISSION 1";
+            introGuideBtn.style.display = "block";
+            mainOverlay.classList.add('active');
+        }
+
+
+	function startMission1() {
+ 	   campaignStage = 'level2Mission1';
+
+ 	   roundLabel.textContent = "LEVEL 2 / MISSION 1";
+
+ 	   overlayTitle.textContent = "SYSTEM OVERHEATING";
+
+ 	   overlayDesc.innerHTML = `
+    		<span style="color: #ef4444; font-weight: bold;">
+      	  		⚠ CRITICAL SYSTEM WARNING
+    		</span>
+
+    		<span style="display: block; margin-top: 10px;">
+        		Your computer is shutting down unexpectedly.
+    		</span>
+
+    		<span style="display: block; color: #ef4444;
+                 		font-size: 20px; font-weight: bold;
+                 		margin: 12px 0;">
+        		CPU TEMPERATURE: 95°C (203°F)
+    		</span>
+
+    		<span style="display: block; margin-top: 12px;">
+        		<strong style="color: #f59e0b;">
+            			WHAT YOU NEED TO KNOW
+        	</strong>
+        	<span style="display: block; margin-top: 5px;">
+            		CPU temperatures vary depending on the
+            		processor and workload. High temperatures
+            		combined with unexpected shutdowns may
+            		indicate a cooling problem.
+        	</span>
+    	</span>
+
+    <span style="display: block; margin-top: 12px;">
+        <strong style="color: #00e5ff;">
+            YOUR MISSION
+        </strong>
+        <span style="display: block; margin-top: 5px;">
+            Investigate the system, identify the cause,
+            and restore normal operation.
+        </span>
+    </span>
+`;
+
+ 	   overlayBtn.textContent = "BEGIN INVESTIGATION";
+
+	   mainOverlay.classList.add('overheat');
+	   mainOverlay.classList.add('active');
+ 	   
+}
+
+
+function beginInvestigation() {
+    campaignStage = 'level2Investigating';
+    // Reset evidence whenever this mission starts.
+    missionInspected.clear();
+    mainOverlay.classList.remove('active', 'overheat');
+    quizOverlay.classList.remove('active');
+    gameState.isPlaying = false; // No heat countdown during diagnostics.
+    roundLabel.textContent = 'LEVEL 2 / INVESTIGATE';
+    renderMotherboard();
+    renderMissionSidebar();
+}
+
+// LEARNING & REVIEW GUIDE
+// Keep reference material in one place so players can review before
+// starting a task or revisit a concept after answering incorrectly.
+const ROUND3_REVIEW = [
+    {
+        title: 'Accessories: Connecting peripherals',
+        points: [
+            'A peripheral is a device connected to the computer, such as a monitor, keyboard, mouse, or speakers.',
+            'A monitor uses a compatible video output such as HDMI or DisplayPort. In this game, the dedicated graphics card provides the active display output, so connect the monitor to the GPU.',
+            'A standard wired USB keyboard and USB mouse connect to available compatible USB ports. They do not connect to RAM slots, SATA connectors, or CPU fan headers.',
+            'Check both the connector type and the device purpose. Some computers also support wireless keyboards and mice.'
+        ]
+    },
+    {
+        title: 'BIOS/UEFI: Firmware verification',
+        points: [
+            'BIOS and UEFI are firmware interfaces used during startup. UEFI is the modern replacement for traditional BIOS on most newer computers.',
+            'Firmware is stored in nonvolatile memory on the motherboard. It is not a separate part you drag into a socket during assembly.',
+            'Before the operating system loads, firmware initializes hardware and can show detected processor, installed memory, and storage devices.',
+            'In our simulated setup, check the CPU (Intel Core i5), memory (16 GB RAM), SSD (512 GB), and HDD (1 TB). These specifications are fictional training examples.',
+            'Verifying detection means confirming the system recognizes the devices; it does not prove every component is healthy or that the operating system is configured correctly.'
+        ]
+    },
+    {
+        title: 'WiFi: Adapter and network security',
+        points: [
+            'Wireless networking may be built into the motherboard or supplied by an additional PCIe or USB adapter. This game assumes the motherboard already has integrated WiFi.',
+            'If integrated WiFi is functional, a second wireless card is not required. A real system may also need antennas, drivers, or an enabled adapter.',
+            'After the operating system starts, check its network or device settings to confirm the wireless adapter is recognized and enabled.',
+            'Connect only to a trusted network. Prefer WPA3-Personal when available, or WPA2 with AES encryption as a fallback.',
+            'An open or similarly named network may be unsafe. Encryption protects the wireless connection, but you should still verify you selected the intended network.'
+        ]
+    }
+];
+
+function populateGuide() {
+    const list = document.getElementById('guideContentList');
+    list.innerHTML = '';
+
+    // Build text using textContent instead of HTML interpolation.
+    // This keeps the guide easy to extend and avoids accidental markup.
+    function addSection(title) {
+        const heading = document.createElement('h4');
+        heading.className = 'guide-section-title';
+        heading.textContent = title;
+        list.appendChild(heading);
+    }
+
+    addSection('LEVEL 1 · HARDWARE REFERENCE (13 TOPICS)');
+    HARDWARE_DB.forEach(part => {
+        const item = document.createElement('div');
+        item.className = 'guide-item';
+        const name = document.createElement('h4');
+        name.textContent = part.name;
+        const description = document.createElement('p');
+        description.textContent = part.desc;
+        item.dataset.reviewTopic = part.id;
+        item.append(name, description);
+        list.appendChild(item);
+    });
+
+    addSection('ROUND 3 · SYSTEM SETUP REVIEW');
+    ROUND3_REVIEW.forEach(topic => {
+        const item = document.createElement('div');
+        item.className = 'guide-item';
+        const name = document.createElement('h4');
+        name.textContent = topic.title;
+        const bullets = document.createElement('ul');
+        topic.points.forEach(point => {
+            const li = document.createElement('li');
+            li.textContent = point;
+            bullets.appendChild(li);
+        });
+        item.append(name, bullets);
+        list.appendChild(item);
+    });
+
+    addSection('LEVEL 2 · TROUBLESHOOTING PREVIEW');
+    const mission = document.createElement('div');
+    mission.className = 'guide-item';
+    const missionTitle = document.createElement('h4');
+    missionTitle.textContent = 'Investigate before replacing parts';
+    const missionText = document.createElement('p');
+    missionText.textContent = 'A high CPU temperature with unexpected shutdowns suggests a cooling problem, but temperature alone does not identify the cause. Inspect evidence, power down and disconnect the computer before checking internal fan connections, and verify normal operation after a repair.';
+    mission.append(missionTitle, missionText);
+    list.appendChild(mission);
+
+    addSection('LEVEL 3 · MISSION 1: FIRST BOOT & OS INSTALLATION');
+    const level3Guide = [
+      {topic:'firmware', title:'BIOS/UEFI hardware checks', points:['Confirm CPU, RAM and storage are detected in firmware.','Check CPU cooler fan operation and temperatures after the Level 2 repair.']},
+      {topic:'cooling', title:'Cooling verification', points:['Confirm the CPU fan spins as expected and that temperature remains within safe limits.','Stop and investigate if overheating or shutdown warnings return.']},
+      {topic:'media', title:'Trusted installation media', points:['Get the installer from an official or verified source.','Use a bootable USB prepared according to the OS vendor instructions.']},
+      {topic:'boot', title:'Boot order and first startup', points:['Choose the installer USB from the UEFI boot menu.','After installation, boot from the intended internal drive into the new OS.']},
+      {topic:'disk', title:'Drive selection and backups', points:['Back up important files before installation; formatting or partition changes can erase data.','Check the target drive name, capacity and partitions before confirming.']},
+      {topic:'drivers', title:'Device drivers', points:['Check that network, display and other devices are detected.','Obtain missing drivers from the OS update service or the hardware manufacturer.']},
+    ];
+    const level3GuideMission2 = [
+      {topic:'updates', title:'System and security updates', points:['Install trusted operating system and driver updates.','Enable automatic security updates where appropriate.']},
+      {topic:'accounts', title:'Account security', points:['Use a standard account for everyday work and administrator privileges only when needed.','Use unique strong passwords and multifactor authentication where supported.']},
+      {topic:'firewall', title:'Firewall and malware protection', points:['Keep the host firewall enabled; allow only necessary network traffic.','Keep built-in malware protection active and updated.']},
+      {topic:'wifi', title:'Secure Wi-Fi', points:['Verify the intended network name before connecting.','Use WPA2-AES or WPA3 rather than an unencrypted network.']},
+      {topic:'backup', title:'Backups and recovery', points:['Create a backup or recovery plan and test that files can be restored.','Keep important data recoverable if the drive fails or malware strikes.']},
+      {topic:'verification', title:'Final system readiness', points:['Verify temperatures, fan operation, drivers, network access, updates and security settings.','Investigate warnings rather than assuming a successful boot means everything is safe.']}
+    ];
+    function addLevel3GuideEntries(entries) {
+    entries.forEach(entry => {
+      const item = document.createElement('div');
+      item.className = 'guide-item';
+      item.dataset.level3Topic = entry.topic;
+      const heading = document.createElement('h4');
+      heading.textContent = entry.title;
+      const points = document.createElement('ul');
+      entry.points.forEach(point => {
+        const li = document.createElement('li');
+        li.textContent = point;
+        points.appendChild(li);
+      });
+      item.append(heading, points);
+      list.appendChild(item);
+    });
+    }
+    addLevel3GuideEntries(level3Guide);
+    addSection('LEVEL 3 · MISSION 2: SECURE & VERIFY YOUR PC');
+    addLevel3GuideEntries(level3GuideMission2);
+}
+
+                overlayBtn.addEventListener('click', () => {
+            if (level3Paused) {
+                level3Paused = false;
+                document.getElementById('pauseBtn').textContent = '⏸';
+                mainOverlay.classList.remove('level3-pause');
+                mainOverlay.classList.remove('active');
+                return;
+            }
+            if (campaignStage === 'level2Mission1Complete') { startLevel3(); return; }
+            if (campaignStage === 'level3Intro') { startLevel3Mission(0); return; }
+            if (campaignStage === 'level3MissionIntro') {
+                mainOverlay.classList.remove('active');
+                level3NextStep();
+                return;
+            }
+            if (campaignStage === 'level3Mission1Complete') { startLevel3Mission(1); return; }
+            if (campaignStage === 'level3Mission2Complete') { startLevel3Assessment(); return; }
+            if (campaignStage === 'level3Complete') { replayCampaign(); return; }
+            if (campaignStage === 'level1Complete') {
+                startLevel2();
+                return;
+            }
+
+            if (campaignStage === 'level2') {
+    		startMission1();
+    		return;
+	}
+	    if (campaignStage === 'level2Mission1') {
+    		beginInvestigation();
+    		return;
+	}
+
+            if (gameState.isPaused) {
+                gameState.isPaused = false;
+                document.getElementById('pauseBtn').textContent = '⏸';
+                mainOverlay.classList.remove('active');
+                return;
+            }
+
+            startRound();
+        });
+        introGuideBtn.addEventListener('click', () => { playSound('click'); populateGuide(); guideModal.classList.add('active'); });
+        
+        document.getElementById('soundToggleBtn').addEventListener('click', () => {
+            gameState.soundEnabled = !gameState.soundEnabled;
+            document.getElementById('soundToggleBtn').textContent = gameState.soundEnabled ? '🔊' : '🔇';
+            playSound('click');
+        });
+        document.getElementById('bgmToggleBtn').addEventListener('click', toggleBGM);
+        document.getElementById('guideBtn').addEventListener('click', () => { playSound('click'); populateGuide(); guideModal.classList.add('active'); });
+        document.getElementById('closeGuideBtn').addEventListener('click', () => { playSound('click'); guideModal.classList.remove('active'); });
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            if (campaignStage.startsWith('level3')) {
+                // Level 3 has no countdown. Pause the mission/assessment overlay.
+                if (campaignStage === 'level3Intro' || campaignStage === 'level3MissionIntro' ||
+                    campaignStage === 'level3Mission1Complete' || campaignStage === 'level3Mission2Complete' ||
+                    campaignStage === 'level3Complete') return;
+                level3Paused = !level3Paused;
+                document.getElementById('pauseBtn').textContent = level3Paused ? '▶' : '⏸';
+                if (level3Paused) {
+                    mainOverlay.classList.add('level3-pause');
+                    mainOverlay.classList.add('active');
+                    overlayTitle.textContent = 'GAME PAUSED';
+                    overlayDesc.textContent = 'Take a break.';
+                    overlayBtn.textContent = 'RESUME';
+                    introGuideBtn.style.display = 'none';
+                } else {
+                    mainOverlay.classList.remove('level3-pause');
+                    mainOverlay.classList.remove('active');
+                }
+                playSound('click');
+                return;
+            }
+            if (!gameState.isPlaying) return;
+            gameState.isPaused = !gameState.isPaused;
+            document.getElementById('pauseBtn').textContent = gameState.isPaused ? '▶' : '⏸';
+            if (gameState.isPaused) {
+                mainOverlay.classList.add('active');
+                overlayTitle.textContent = "GAME PAUSED"; overlayDesc.textContent = "Take a break."; overlayBtn.textContent = "RESUME";
+                introGuideBtn.style.display = "none";
+            } else { mainOverlay.classList.remove('active'); }
+            playSound('click');
+        });
+		
+
+    // ROUND 3: ACCESSORIES AND WIFI SETUP
+    // One activity at a time. Players must select the appropriate action
+    // for each step; incorrect choices explain the problem without scoring.
+    const SETUP_ACTIVITIES = {
+        accessories: {
+            title: 'CONNECT EXTERNAL PERIPHERALS',
+            intro: 'The computer is assembled. Choose the appropriate connection for each peripheral. In this scenario, the dedicated graphics card is the active video output.',
+            steps: [
+                { prompt: 'Where should you connect the monitor video cable?',
+                  choices: ['To a video output on the graphics card (HDMI/DisplayPort)', 'To a USB-A data port', 'To the power supply AC inlet'], correct: 0,
+                  why: 'A monitor receives video from a compatible display output. With a dedicated GPU in use, connect to its video port.' },
+                { prompt: 'Which connection is appropriate for a standard wired USB keyboard?',
+                  choices: ['A SATA data connector', 'An available USB port', 'The CPU fan header'], correct: 1,
+                  why: 'A wired USB keyboard connects to a compatible USB port.' },
+                { prompt: 'Where should a standard wired USB mouse connect?',
+                  choices: ['An available USB port', 'A PCIe power connector', 'The motherboard RAM slot'], correct: 0,
+                  why: 'A wired USB mouse connects to a compatible USB port.' }
+            ]
+        },
+        wifi: {
+            title: 'VERIFY WIRELESS CONNECTIVITY',
+            intro: 'This simulated motherboard includes integrated WiFi. You do not need to install a second wireless chip. Verify the adapter and choose a secure connection.',
+            steps: [
+                { prompt: 'The motherboard already has working integrated WiFi. What additional WiFi hardware must you install?',
+                  choices: ['A second WiFi card is always required', 'None, provided the integrated adapter is functional', 'A second CPU'], correct: 1,
+                  why: 'Integrated WiFi can provide wireless networking without an additional expansion card.' },
+                { prompt: 'Where can you confirm the wireless adapter is recognized after the operating system starts?',
+                  choices: ['Only in the power supply', 'Only by looking at the case fan', 'In the operating system network adapter/device settings'], correct: 2,
+                  why: 'Operating system device and network settings can show whether the wireless adapter is recognized and enabled.' },
+                { prompt: 'Which wireless network configuration is the best option here?',
+                  choices: ['Join the trusted network using WPA3-Personal, or WPA2-AES when WPA3 is unavailable', 'Disable encryption for better speed', 'Connect to any similarly named open network'], correct: 0,
+                  why: 'Use a trusted network and strong wireless encryption. WPA3 is preferred when supported; WPA2-AES is an acceptable fallback.' }
+            ]
+        }
+    };
+
+    // Shared helper awards exactly 100 points after an activity is finished.
+    function finishRound3Activity(partId) {
+        if (gameState.round !== 3 || !gameState.isPlaying || gameState.placedParts.has(partId)) return;
+        gameState.placedParts.add(partId);
+        gameState.score += 100;
+        scoreVal.textContent = gameState.score;
+        playSound('success');
+        quizOverlay.classList.remove('active');
+        renderSidebar();
+        renderMotherboard();
+        if (gameState.placedParts.size === gameState.requiredParts.length) completeRound();
+    }
+
+    function openSetupActivity(partId) {
+        const activity = SETUP_ACTIVITIES[partId];
+        if (!activity || gameState.placedParts.has(partId)) return;
+        let stepIndex = 0;
+        quizOverlay.classList.add('active');
+        function showStep() {
+            const step = activity.steps[stepIndex];
+            quizTitle.textContent = activity.title + ` (${stepIndex + 1}/${activity.steps.length})`;
+            quizQuestion.textContent = step.prompt;
+            quizChoices.innerHTML = '';
+            if (stepIndex === 0) {
+                const intro = document.createElement('div');
+                intro.className = 'setup-info';
+                intro.textContent = activity.intro;
+                quizChoices.appendChild(intro);
+            }
+            const feedback = document.createElement('p');
+            feedback.className = 'setup-status';
+            step.choices.forEach((choice, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'quiz-btn';
+                btn.textContent = choice;
+                btn.addEventListener('click', () => {
+                    if (index !== step.correct) {
+                        playSound('click');
+                        feedback.textContent = 'Not quite. Consider the purpose of the connection and try again.';
+                        return;
+                    }
+                    playSound('success');
+                    quizChoices.innerHTML = '';
+                    quizQuestion.textContent = step.why;
+                    const next = document.createElement('button');
+                    next.className = 'btn';
+                    next.textContent = stepIndex === activity.steps.length - 1 ? 'FINISH SETUP (+100 PTS)' : 'NEXT CHECK';
+                    next.addEventListener('click', () => {
+                        stepIndex++;
+                        if (stepIndex === activity.steps.length) finishRound3Activity(partId);
+                        else showStep();
+                    });
+                    quizChoices.appendChild(next);
+                });
+                quizChoices.appendChild(btn);
+            });
+            quizChoices.appendChild(feedback);
+        }
+        showStep();
+    }
+
+    // ROUND 3: SIMULATED UEFI FIRMWARE INTERFACE
+    // This function opens a simulated firmware setup screen.
+    // It does not access or modify the player's real BIOS/UEFI.
+    function openUEFI() {
+
+        // Hide the regular game screen behind the quiz overlay.
+        quizOverlay.classList.add('active');
+
+        // Give the simulated firmware screen its own heading.
+        quizTitle.textContent = "UEFI FIRMWARE SETUP";
+
+        // Explain what the player needs to verify.
+        quizQuestion.textContent =
+            "Inspect the system information and verify that " +
+            "the CPU, memory, and storage devices are detected.";
+
+        // Clear any buttons left over from previous quizzes.
+        quizChoices.innerHTML = '';
+
+        // Define the simulated hardware information.
+        // These values are fictional training data.
+        const systemInfo = [
+            "CPU: Intel Core i5 (Detected)",
+            "Memory: 16 GB RAM (Detected)",
+            "Storage: 512 GB SSD (Detected)",
+            "Storage: 1 TB HDD (Detected)"
+        ];
+
+        // Create a separate display entry for each device.
+        systemInfo.forEach(info => {
+
+            const entry = document.createElement('div');
+
+            // Use existing styling to match the game.
+            entry.className = 'quiz-btn';
+
+            // Display the simulated hardware information.
+            entry.textContent = info;
+
+            // Add the entry to the UEFI interface.
+            quizChoices.appendChild(entry);
+        });
+		
+    // TRACK THE PLAYER'S VERIFICATION
+    // The player must inspect each hardware category.
+    const verified = new Set();
+
+    // Create a button for each verification task.
+    const checks = [
+        { id: 'cpu', label: 'VERIFY CPU DETECTION' },
+        { id: 'ram', label: 'VERIFY MEMORY DETECTION' },
+        { id: 'storage', label: 'VERIFY STORAGE DETECTION' }
+    ];
+
+    checks.forEach(check => {
+        const button = document.createElement('button');
+        button.className = 'quiz-btn';
+        button.textContent = check.label;
+
+        button.addEventListener('click', () => {
+
+            // Record this verification only once.
+            verified.add(check.id);
+            button.textContent = '✓ ' + check.label;
+            button.disabled = true;
+
+            // Unlock completion after all three checks.
+            if (verified.size === checks.length) {
+                finishButton.disabled = false;
+                finishButton.textContent = 'EXIT UEFI & COMPLETE VERIFICATION';
+            }
+        });
+
+        quizChoices.appendChild(button);
+    });
+
+    // COMPLETION BUTTON
+    // Keep this locked until all checks are verified.
+    const finishButton = document.createElement('button');
+    finishButton.className = 'btn';
+    finishButton.textContent = 'COMPLETE ALL CHECKS FIRST';
+    finishButton.disabled = true;
+
+    finishButton.addEventListener('click', () => {
+
+        // Use the same single-award completion path as the other Round 3 tasks.
+        finishRound3Activity('bios');
+    });
+
+    quizChoices.appendChild(finishButton);
+
+    }
+
+    // Standalone Level 3: show its instructions and start at Mission 1.
+    startLevel3();
+    </script>
+</body>
+</html>
